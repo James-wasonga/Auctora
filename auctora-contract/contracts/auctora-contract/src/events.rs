@@ -37,7 +37,7 @@ impl Events {
     }
 
     pub fn auction_cancelled(env: &Env, auction_id: u64, creator: Address) {
-        let topics = (symbol_short("a_cancel"), auction_id, creator);
+        let topics = (symbol_short!("a_cancel"), auction_id, creator);
         env.events().publish(topics, ());
     }
 }

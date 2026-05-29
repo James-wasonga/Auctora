@@ -1,21 +1,29 @@
 use soroban_sdk::{contract, contractimpl, token, Address, String, Env, Vec};
 
+use crate::{
+    auction_trait::AuctionInterface,
+    error::ContractError,
+    events::Events,
+    storage::{DataKey, BidKey},
+    types::{Auction, AuctionStatus},
+};
+
 #[contract]
 pub struct AuctoraContract;
 
 #[contractimpl]
 impl AuctoraContract {
+
     fn current_time(env: &Env) -> u64 {
         env.ledger().timestamp()
     }
-
-    fn get_auction_interval(env: &Env, auction_id: u4) -> Result<Auction, ContractError>{
+    fn get_auction_internal(env: &Env, auction_id: u64) -> Result<Auction, ContractError>{
         env.storage().persistent().get(&DataKey::Auction(auction_id)).ok_or(ContractError::AuctionNotFound)
     }
 
     fn refund_bidder(env: &Env, token_contract: &Address, bidder: &Address, amount: i128) {
         if amount > 0 {
-            let token_client = token::client::new(env, token_contract);
+            let token_client = token::Client::new(env, token_contract);
             let contract_address = env.current_contract_address();
             token_client.transfer(&contract_address, bidder, &amount);
         }
@@ -28,11 +36,11 @@ impl AuctionInterface for AuctoraContract {
         admin.require_auth();
         env.storage().persistent().set(&DataKey::Admin, &admin);
         env.storage().persistent().set(&DataKey::TokenContract, &token_contract);
-        env,storage().persistent().set(&DataKey::AuctionCounter, &0u64);
+        env.storage().persistent().set(&DataKey::AuctionCounter, &0u64);
     }
 
     fn create_auction(
-        env: &Env,
+        env: Env,
         creator: Address,
         title: String,
         description: String,
@@ -45,12 +53,12 @@ impl AuctionInterface for AuctoraContract {
             return Err(ContractError::InvalidAmount);
         }
 
-        let current_time = self::current_time(&env);
+        let current_time = Self::current_time(&env);
         if deadline <= current_time {
             return Err(ContractError::InvalidDeadline);
         }
 
-        let token_contract: Address = env.storage().persistent().get(&DataKey::TokenContract).unwarap();
+        let token_contract: Address = env.storage().persistent().get(&DataKey::TokenContract).unwrap();
 
         let auction_id: u64 = env.storage().persistent().get(&DataKey::AuctionCounter).unwrap_or(0);
 
@@ -79,14 +87,14 @@ impl AuctionInterface for AuctoraContract {
     }
 
     fn place_bid(
-        env: &Env,
+        env: Env,
         bidder: Address,
         auction_id: u64,
         amount: i128,
     ) -> Result<(), ContractError> {
         bidder.require_auth();
 
-        let auction = Self::get_auction_interval(&env, auction_id)?;
+        let auction = Self::get_auction_internal(&env, auction_id)?;
 
         if auction.status != AuctionStatus::Active {
             if auction.status == AuctionStatus::Cancelled {
@@ -122,14 +130,14 @@ impl AuctionInterface for AuctoraContract {
             if prev_bidder != bidder {
                 let prev_bid_key = DataKey::Bid(BidKey {
                     auction_id,
-                    bidder: prev_bidder,
+                    bidder: prev_bidder.clone(),
                 });
 
                 let prev_amount: i128 = env.storage().persistent().get(&prev_bid_key).unwrap_or(0);
 
                 if prev_amount > 0 {
                     Self::refund_bidder(&env, &auction.token_contract, &prev_bidder, prev_amount);
-                    Events::bid_refunded(&Env, auction_id, prev_bidder, prev_amount);
+                    Events::bid_refunded(&env, auction_id, prev_bidder, prev_amount);
                     env.storage().persistent().set(&prev_bid_key, &0i128);
                 }
             }

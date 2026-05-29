@@ -1,6 +1,9 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, vec, Env, String, Vec};
-
-
 
 mod test;
+mod auction;
+mod events;
+mod types;
+mod auction_trait;
+mod error;
+mod storage;

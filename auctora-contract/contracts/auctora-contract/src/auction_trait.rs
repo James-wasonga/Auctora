@@ -1,5 +1,5 @@
 use soroban_sdk::{Address, Env, String, Vec};
-use crate::error:ContractError;
+use crate::error::ContractError;
 use crate::types::Auction;
 
 pub trait AuctionInterface {
@@ -27,7 +27,7 @@ pub trait AuctionInterface {
 
     // Finalize auction after deadline - sends winning bid to creator
     // Previous highest bidder is automatically outbid (refund on each new bid) 
-    fn Finalize_auction(
+    fn finalize_auction(
         env: Env,
         auction_id: u64,
     ) -> Result<(), ContractError>;

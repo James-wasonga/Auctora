@@ -1,9 +1,9 @@
-use soroban_sdk::ContractError;
+use soroban_sdk::contracterror;
 
-#[Contracterror]
+#[contracterror]
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum ContractError {
-    unauthorized = 1,
+    Unauthorized = 1,
 
     // Auction errors
     AuctionNotFound = 2,
