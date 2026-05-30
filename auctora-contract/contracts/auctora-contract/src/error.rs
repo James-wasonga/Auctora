@@ -19,7 +19,7 @@ pub enum ContractError {
 
     // Token errors
     InsufficientFunds = 10,
-    transferFailed = 11,
+    TransferFailed = 11,
 
     // General
     InvalidAmount = 12,
